@@ -8,16 +8,18 @@ import (
 )
 
 type Client struct {
-	Conn *websocket.Conn
-	Hub  *Hub
-	Send chan Message
+	Conn       *websocket.Conn
+	Hub        *Hub
+	Send       chan Message
+	WhichStore string
 }
 
-func NewClient(conn *websocket.Conn, hub *Hub) *Client {
+func NewClient(conn *websocket.Conn, hub *Hub, s string) *Client {
 	return &Client{
-		Conn: conn,
-		Hub:  hub,
-		Send: make(chan Message),
+		Conn:       conn,
+		Hub:        hub,
+		Send:       make(chan Message),
+		WhichStore: s,
 	}
 }
 

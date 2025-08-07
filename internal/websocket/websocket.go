@@ -15,16 +15,16 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func Serve(ctx *gin.Context, hub *Hub) error {
+func Serve(ctx *gin.Context, hub *Hub, key string) error {
 	ws, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
 		return err
 	}
-	client := NewClient(ws, hub)
+	client := NewClient(ws, hub, key)
 	client.Hub.Register <- client
 
-	go client.Read()
 	go client.Write()
+	go client.Read()
 
 	return nil
 }

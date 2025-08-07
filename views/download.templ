@@ -1,0 +1,18 @@
+package views
+
+templ Download(filename, key string) {
+@Layout() {
+<label>{ filename }</label>
+}
+<script>
+	const protocol = window.location.protocol === "https:" ? "wss" : "ws"
+	const socket = new WebSocket(`${protocol}://${window.location.host}/ws/{{ key }}`)
+	socket.onopen = (event) => {
+		const message = {
+			type: "ping",
+			payload: "{{ key }}",
+		}
+		socket.send(JSON.stringify(message))
+	}
+</script>
+}
