@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/dimfu/castaway/internal/renderer"
+	"github.com/dimfu/castaway/internal/websocket"
+	"github.com/dimfu/castaway/views"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,8 +26,24 @@ func newApp() *app {
 }
 
 func (a *app) setupRoutes() {
+	hub := websocket.NewHub()
+	go hub.Run()
+
+	a.engine.GET("/ws", func(ctx *gin.Context) {
+		if err := websocket.Serve(ctx, hub); err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+	})
+
 	a.engine.GET("/", func(ctx *gin.Context) {
-		ctx.String(http.StatusOK, "Hello World")
+		ctx.HTML(http.StatusOK, "", views.Index())
+	})
+
+	a.engine.POST("init-upload", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{
+			"success": true,
+		})
 	})
 }
 

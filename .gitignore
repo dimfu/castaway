@@ -1,6 +1,6 @@
 # folders & files
-output
 tmp
+bin
 *_templ.go*
 
 # etc
