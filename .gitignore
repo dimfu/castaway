@@ -1,0 +1,7 @@
+# folders & files
+output
+tmp
+*_templ.go*
+
+# etc
+settings.yaml
