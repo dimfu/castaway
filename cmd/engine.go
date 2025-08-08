@@ -111,7 +111,12 @@ func (a *app) setupRoutes() {
 			}
 
 			if len(chunk) == 0 {
+				log.Println("No chunk to send")
 				break
+			}
+
+			if f, ok := ctx.Writer.(http.Flusher); ok {
+				f.Flush()
 			}
 
 			transferred += len(chunk)

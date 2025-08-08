@@ -33,23 +33,24 @@ func newRegistry(key string, secret string, fileInfo *FileInfo) *Registry {
 
 // clear current chunk from the buffer and returns it so that we can send it to the client
 func (r *Registry) DequeueChunk() []byte {
-	// wait for chunk to be ready for distribution
-	<-r.ChunkReadyChan
-	tmp := r.Buffer
+	for len(r.Buffer) == 0 {
+		<-r.FreeBufferChan // wait until WriteChunks() signals
+	}
+	tmp := make([]byte, len(r.Buffer))
+	copy(tmp, r.Buffer)
 	r.Buffer = r.Buffer[:0]
-	r.FreeBufferChan <- struct{}{}
 	return tmp
 }
 
 func (r *Registry) WriteChunks(chunk []byte) {
-	if len(r.Buffer) >= BUF_SIZE {
+	if len(r.Buffer) == BUF_SIZE {
 		// wait for free buf channel
 		log.Println("Buffer chunk full, waiting for release")
 		<-r.FreeBufferChan
 	}
 	r.Buffer = append(r.Buffer, chunk...)
 	// signal that chunk is ready
-	r.ChunkReadyChan <- struct{}{}
+	r.FreeBufferChan <- struct{}{}
 }
 
 func (r *Registry) BuildChunks() []int {
