@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/dimfu/castaway/internal/renderer"
 	"github.com/dimfu/castaway/internal/store"
@@ -48,7 +50,14 @@ func (a *app) setupRoutes() {
 
 	a.engine.POST("/init-upload", func(ctx *gin.Context) {
 		secret := ctx.PostForm("secret")
-		r, err := a.store.AddToRegistry(secret, "test_file.txt")
+		filesize := ctx.PostForm("file_size")
+		fmt.Println("file size", filesize)
+		fileSize, _ := strconv.Atoi(ctx.PostForm("file_size"))
+		r, err := a.store.AddToRegistry(secret, &store.FileInfo{
+			Name: ctx.PostForm("file_name"),
+			Size: fileSize,
+			Type: ctx.PostForm("file_type"),
+		})
 		if err != nil {
 			ctx.AbortWithError(http.StatusInternalServerError, err)
 			return
@@ -64,17 +73,55 @@ func (a *app) setupRoutes() {
 
 		ctx.JSON(http.StatusOK, gin.H{
 			"status": "Waiting for reciever",
-			"url":    fmt.Sprintf("%s/dl/%s", baseURL, r.Key),
+			"chunks": r.BuildChunks(),
+			"url":    fmt.Sprintf("%s/store/%s", baseURL, r.Key),
 		})
 	})
 
+	// download page
+	a.engine.GET("/store/:key", func(ctx *gin.Context) {
+		key := ctx.Param("key")
+		r, err := a.store.FindRegistry(key)
+		if err != nil {
+			ctx.AbortWithError(http.StatusNotFound, err)
+		}
+		ctx.HTML(http.StatusOK, "", views.Download(r.FileInfo.Name, key))
+	})
+
+	// direct download endpoint
 	a.engine.GET("/dl/:key", func(ctx *gin.Context) {
 		key := ctx.Param("key")
 		r, err := a.store.FindRegistry(key)
 		if err != nil {
 			ctx.AbortWithError(http.StatusNotFound, err)
 		}
-		ctx.HTML(http.StatusOK, "", views.Download(r.Filename, key))
+		ctx.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, r.FileInfo.Name))
+		ctx.Header("Content-Type", "application/octet-stream")
+		ctx.Header("Content-Length", fmt.Sprintf("%d", r.FileInfo.Size))
+
+		transferred := 0
+		for {
+			chunk := r.DequeueChunk()
+			_, err := ctx.Writer.Write(chunk)
+
+			if err != nil {
+				ctx.AbortWithError(http.StatusInternalServerError, err)
+				log.Printf("Error writing chunk: %v", err)
+				break
+			}
+
+			if len(chunk) == 0 {
+				break
+			}
+
+			transferred += len(chunk)
+			if transferred >= r.FileInfo.Size {
+				log.Println("Finished transferring all data to client")
+				break
+			}
+		}
+
+		a.store.ClearRegistry(r.Key)
 	})
 }
 

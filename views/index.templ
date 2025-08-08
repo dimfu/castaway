@@ -3,36 +3,93 @@ package views
 templ Index() {
 @Layout() {
 <h1>Castaway</h1>
-<form enctype="multipart/form-data" hx-post="/init-upload" hx-on::after-request="handleInitUpload(event)"
-	style="max-width: 120px;  width: fit-content;">
+<form id="uploadForm" hx-post="/init-upload" hx-on::before-request="attachFilePayload(event)"
+	hx-on::after-request="initUpload(event)" style="max-width: 120px;  width: fit-content;">
 	<input type="text" name="secret" placeholder="Enter secret key for this session" />
-	<input type="file" />
+	<input id="fileInput" type="file" />
+	<input type="hidden" name="file_name" />
+	<input type="hidden" name="file_size" />
+	<input type="hidden" name="file_type" />
 	<button style="display: block; margin-top: 1rem; width: 100%;" type="submit">Upload</button>
 </form>
 }
 <script>
-	function handleInitUpload(event) {
-		const xhr = event.detail.xhr
-		try {
-			const json = JSON.parse(xhr.responseText)
-			if (json.url) {
-				const key = json.url.split("/").pop()
-				const protocol = window.location.protocol === "https:" ? "wss" : "ws"
-				const socket = new WebSocket(`${protocol}://${window.location.host}/ws/${key}`)
+	let socket
 
-				socket.onopen = () => {
-					console.info("Connected to websocket")
-				}
+	// clear fileInput on first render
+	// had to use clearedOnce check since i dont know why it kept triggering the .reset() method
+	// everytime the htmx swap doing its thing
+	let clearedOnce
+	document.addEventListener('DOMContentLoaded', function () {
+		if (clearedOnce) return
+		clearedOnce = true
+		document.getElementById("uploadForm").reset()
+	})
 
-				socket.addEventListener("message", (event) => {
-					const data = JSON.parse(event.data)
-					if (data.type === "pong") {
-						console.log("received pong, transmitting file chunks...")
+	function clearFormInputs() {
+		var form = document.getElementById('uploadForm')
+		if (form) {
+			var inputs = form.getElementsByTagName('input')
+			for (var i = 0; i < inputs.length; i++) {
+				inputs[i].value = ''
+			}
+		}
+	}
+
+	function handleUploadSocket(socket, file, chunks) {
+		socket.onopen = () => {
+			console.info("Waiting for receiver")
+		}
+		socket.addEventListener("message", (event) => {
+			const data = JSON.parse(event.data)
+			switch (data.type) {
+				case "pong":
+					console.log("Receiver connected, starting to uplaod chunks")
+					let offset = 0
+					for (const chunk_size of chunks) {
+						// send the blob directly to the server
+						socket.send(file.slice(offset, offset + chunk_size))
+						offset += chunk_size
 					}
-				})
+					break
+				default:
+					console.log(data.type)
+			}
+		})
+	}
+
+	function attachFilePayload(event) {
+		const form = event.target
+		const fileInput = form.querySelector("#fileInput")
+		const file = fileInput.files[0]
+		if (!file) {
+			event.preventDefault()
+			console.error("Must include file")
+			return
+		}
+
+		// attach file to event htmx data so that we can use it on post upload handler a.k.a initUpload
+		event.detail.file = file
+
+		form.querySelector('input[name="file_name"]').value = file.name
+		form.querySelector('input[name="file_size"]').value = file.size
+		form.querySelector('input[name="file_type"]').value = file.type
+	}
+
+	function initUpload(event) {
+		const {xhr, file} = event.detail
+		try {
+			const data = JSON.parse(xhr.responseText)
+			if (data.url && file) {
+				const key = data.url.split("/").pop()
+				const protocol = window.location.protocol === "https:" ? "wss" : "ws"
+				socket = new WebSocket(`${protocol}://${window.location.host}/ws/${key}`)
+				handleUploadSocket(socket, file, data.chunks, key)
+			} else {
+				throw new Error("Missing download url or file")
 			}
 		} catch (err) {
-			console.error("Failed to parse JSON response:", err)
+			console.error(err)
 		}
 	}
 </script>

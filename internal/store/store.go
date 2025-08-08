@@ -1,9 +1,9 @@
 package store
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
+
+	"github.com/google/uuid"
 )
 
 type Store struct {
@@ -16,19 +16,18 @@ func New() *Store {
 	}
 }
 
-func (s *Store) generateKey(input string) string {
-	hash := sha256.Sum256([]byte(input))
-	return base64.URLEncoding.EncodeToString(hash[:])
+func (s *Store) generateKey() string {
+	return uuid.NewString()
 }
 
-func (s *Store) AddToRegistry(secret, filename string) (*Registry, error) {
-	key := s.generateKey(secret)
+func (s *Store) AddToRegistry(secret string, fileInfo *FileInfo) (*Registry, error) {
+	key := s.generateKey()
 	if _, ok := s.RegistryMap[key]; !ok {
-		r := newRegistry(key, filename)
+		r := newRegistry(key, secret, fileInfo)
 		s.RegistryMap[key] = r
 		return r, nil
 	}
-	return nil, fmt.Errorf("Registry with secret '%s' already exists", secret)
+	return nil, fmt.Errorf("Registry with key '%s' already exists", key)
 }
 
 func (s *Store) FindRegistry(key string) (*Registry, error) {
@@ -37,4 +36,8 @@ func (s *Store) FindRegistry(key string) (*Registry, error) {
 		return r, fmt.Errorf("Could not find registry with key %s", key)
 	}
 	return r, nil
+}
+
+func (s *Store) ClearRegistry(key string) {
+	delete(s.RegistryMap, key)
 }

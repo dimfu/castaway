@@ -2,7 +2,10 @@ package views
 
 templ Download(filename, key string) {
 @Layout() {
-<label>{ filename }</label>
+<div>
+	<label>{ filename }</label>
+	<a id="downloadLink">Download</a>
+</div>
 }
 <script>
 	const protocol = window.location.protocol === "https:" ? "wss" : "ws"
@@ -14,5 +17,15 @@ templ Download(filename, key string) {
 		}
 		socket.send(JSON.stringify(message))
 	}
+
+	socket.addEventListener("message", (event) => {
+		const data = JSON.parse(event.data)
+		switch (data.type) {
+			case "download_ready":
+				document.getElementById('downloadLink').href = window.location.href.replace('/store/', '/dl/');
+			default:
+				console.log(data.type)
+		}
+	})
 </script>
 }
