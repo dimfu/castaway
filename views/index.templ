@@ -1,38 +1,44 @@
 package views
 
 templ Index() {
-@Layout() {
-<h1>Castaway</h1>
-<form id="uploadForm" hx-post="/init-upload" hx-on::before-request="attachFilePayload(event)"
-	hx-on::after-request="initUpload(event)" style="max-width: 120px;  width: fit-content;">
-	<input type="text" name="secret" placeholder="Enter secret key for this session" />
-	<input id="fileInput" type="file" />
-	<input type="hidden" name="file_name" />
-	<input type="hidden" name="file_size" />
-	<input type="hidden" name="file_type" />
-	<button style="display: block; margin-top: 1rem; width: 100%;" type="submit">Upload</button>
-</form>
-}
-<script>
+	@Layout() {
+		<h1>Castaway</h1>
+		<form
+			id="uploadForm"
+			hx-post="/init-upload"
+			hx-on::after-request="initUpload(event)"
+			style="max-width: 500px; width: fit-content;"
+		>
+			<input type="text" name="secret" placeholder="Enter secret key for this session"/>
+			<input id="fileInput" type="file" onchange="handleFileChange()"/>
+			<input type="hidden" name="file_name"/>
+			<input type="hidden" name="file_size"/>
+			<input type="hidden" name="file_type"/>
+			<button style="display: block; margin-top: 1rem; width: 100%;" type="submit">Upload</button>
+		</form>
+	}
+	<script>
 	let socket
-
-	// clear fileInput on first render
-	// had to use clearedOnce check since i dont know why it kept triggering the .reset() method
-	// everytime the htmx swap doing its thing
 	let clearedOnce
+
 	document.addEventListener('DOMContentLoaded', function () {
 		if (clearedOnce) return
 		clearedOnce = true
-		document.getElementById("uploadForm").reset()
+		clearFormInputs()
 	})
 
+	function clearFileInput() {
+		const fileInput = document.getElementById('fileInput')
+		if (fileInput) {
+			fileInput.value = ''
+			fileInput.dispatchEvent(new Event('change', {bubbles: true}))
+		}
+	}
+
 	function clearFormInputs() {
-		var form = document.getElementById('uploadForm')
+		const form = document.getElementById('uploadForm')
 		if (form) {
-			var inputs = form.getElementsByTagName('input')
-			for (var i = 0; i < inputs.length; i++) {
-				inputs[i].value = ''
-			}
+			form.reset()
 		}
 	}
 
@@ -47,10 +53,11 @@ templ Index() {
 					console.log("Client triggered download, start uploading...")
 					let offset = 0
 					for (const chunk_size of chunks) {
-						// send the blob directly to the server
 						socket.send(file.slice(offset, offset + chunk_size))
 						offset += chunk_size
 					}
+					clearFormInputs()
+					window.currentUploadFile = null
 					break
 				default:
 					console.log(data.type)
@@ -58,26 +65,37 @@ templ Index() {
 		})
 	}
 
-	function attachFilePayload(event) {
-		const form = event.target
-		const fileInput = form.querySelector("#fileInput")
-		const file = fileInput.files[0]
-		if (!file) {
-			event.preventDefault()
-			console.error("Must include file")
-			return
+	function handleFileChange() {
+		const fileInput = document.getElementById("fileInput")
+		const file = fileInput.files && fileInput.files.length > 0 ? fileInput.files[0] : null
+
+		if (file) {
+			console.log("File selected:", file.name, file.size, file.type)
+			window.currentUploadFile = file
+			const form = document.getElementById('uploadForm')
+			form.querySelector('input[name="file_name"]').value = file.name
+			form.querySelector('input[name="file_size"]').value = file.size
+			form.querySelector('input[name="file_type"]').value = file.type
+		} else {
+			window.currentUploadFile = null
+			const form = document.getElementById('uploadForm')
+			form.querySelector('input[name="file_name"]').value = ''
+			form.querySelector('input[name="file_size"]').value = ''
+			form.querySelector('input[name="file_type"]').value = ''
 		}
-
-		// attach file to event htmx data so that we can use it on post upload handler a.k.a initUpload
-		event.detail.file = file
-
-		form.querySelector('input[name="file_name"]').value = file.name
-		form.querySelector('input[name="file_size"]').value = file.size
-		form.querySelector('input[name="file_type"]').value = file.type
 	}
 
 	function initUpload(event) {
-		const {xhr, file} = event.detail
+		const {xhr} = event.detail
+		const file = window.currentUploadFile
+
+		if (!file) {
+			console.error("No file selected")
+			return
+		}
+
+		console.log("Initializing upload for:", file.name)
+
 		try {
 			const data = JSON.parse(xhr.responseText)
 			if (data.url && file) {
