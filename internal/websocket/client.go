@@ -49,8 +49,6 @@ func (c *Client) Read() {
 				continue
 			}
 
-			// write chunks to registry buffer, and wait for the client to download the buffered chunk
-			// so that the chunk buffer can be cleared for the next chunk
 			r.WriteChunks(data)
 
 			log.Printf("Wrote bytes (total %d/%d)\n", len(data), cap(r.Buffer))

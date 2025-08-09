@@ -7,12 +7,14 @@ import (
 )
 
 type Store struct {
-	RegistryMap map[string]*Registry
+	RegistryMap    map[string]*Registry
+	UsingChunkSize int64
 }
 
-func New() *Store {
+func New(chunksize int64) *Store {
 	return &Store{
-		RegistryMap: make(map[string]*Registry),
+		RegistryMap:    make(map[string]*Registry),
+		UsingChunkSize: chunksize,
 	}
 }
 
@@ -23,7 +25,7 @@ func (s *Store) generateKey() string {
 func (s *Store) AddToRegistry(secret string, fileInfo *FileInfo) (*Registry, error) {
 	key := s.generateKey()
 	if _, ok := s.RegistryMap[key]; !ok {
-		r := newRegistry(key, secret, fileInfo)
+		r := newRegistry(s.UsingChunkSize, key, fileInfo)
 		s.RegistryMap[key] = r
 		return r, nil
 	}

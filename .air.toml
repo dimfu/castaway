@@ -17,7 +17,7 @@ bin = "bin/main"
 # Customize binary, can setup environment variables when run your app.
 full_bin = "APP_ENV=dev APP_USER=air ./bin/main"
 # Add additional arguments when running binary (bin/full_bin). Will run './tmp/main hello world'.
-args_bin = ["hello", "world"]
+args_bin = ["-port", "6969", "-chunksize", "2"]
 # Watch these filename extensions.
 include_ext = ["go", "tpl", "templ", "html"]
 # Ignore these filename extensions or directories.

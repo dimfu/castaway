@@ -6,31 +6,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/dimfu/castaway/internal/renderer"
 	"github.com/dimfu/castaway/internal/store"
 	"github.com/dimfu/castaway/internal/websocket"
 	"github.com/dimfu/castaway/views"
 	"github.com/gin-gonic/gin"
 )
-
-type app struct {
-	engine *gin.Engine
-	store  *store.Store
-}
-
-func newApp() *app {
-	app := &app{
-		store: store.New(),
-	}
-	app.engine = gin.Default()
-
-	ginHtmlRenderer := app.engine.HTMLRender
-	app.engine.HTMLRender = &renderer.HTMLTemplRenderer{FallbackHtmlRenderer: ginHtmlRenderer}
-
-	app.setupRoutes()
-
-	return app
-}
 
 func (a *app) setupRoutes() {
 	hub := websocket.NewHub(a.store)
@@ -50,8 +30,6 @@ func (a *app) setupRoutes() {
 
 	a.engine.POST("/init-upload", func(ctx *gin.Context) {
 		secret := ctx.PostForm("secret")
-		filesize := ctx.PostForm("file_size")
-		fmt.Println("file size", filesize)
 		fileSize, _ := strconv.Atoi(ctx.PostForm("file_size"))
 		r, err := a.store.AddToRegistry(secret, &store.FileInfo{
 			Name: ctx.PostForm("file_name"),
@@ -85,7 +63,7 @@ func (a *app) setupRoutes() {
 		if err != nil {
 			ctx.AbortWithError(http.StatusNotFound, err)
 		}
-		ctx.HTML(http.StatusOK, "", views.Download(r.FileInfo.Name, key, r.DownloadReady))
+		ctx.HTML(http.StatusOK, "", views.Download(r.FileInfo.Name, key, r.Ready))
 	})
 
 	// direct download endpoint
@@ -128,9 +106,4 @@ func (a *app) setupRoutes() {
 
 		a.store.ClearRegistry(r.Key)
 	})
-}
-
-func (a *app) run() error {
-	// TODO: add flag to configure the port or just use system environment
-	return a.engine.Run(":8080")
 }
