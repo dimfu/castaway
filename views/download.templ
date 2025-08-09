@@ -1,31 +1,32 @@
 package views
 
-templ Download(filename, key string) {
-@Layout() {
-<div>
-	<label>{ filename }</label>
-	<a id="downloadLink">Download</a>
-</div>
-}
-<script>
+templ Download(filename, key string, downloadReady bool) {
+	@Layout() {
+		<div>
+			<label>{ filename }</label>
+			<a onclick="triggerDownload()" id="downloadLink">Download</a>
+		</div>
+	}
+	<script>
 	const protocol = window.location.protocol === "https:" ? "wss" : "ws"
 	const socket = new WebSocket(`${protocol}://${window.location.host}/ws/{{ key }}`)
+
 	socket.onopen = (event) => {
-		const message = {
-			type: "ping",
-			payload: "{{ key }}",
-		}
-		socket.send(JSON.stringify(message))
+		console.log("Connected to websocket")
 	}
 
-	socket.addEventListener("message", (event) => {
-		const data = JSON.parse(event.data)
-		switch (data.type) {
-			case "download_ready":
-				document.getElementById('downloadLink').href = window.location.href.replace('/store/', '/dl/');
-			default:
-				console.log(data.type)
+	const downloadReady = Boolean({{ downloadReady }})
+	document.addEventListener("DOMContentLoaded", (event) => {
+		if (downloadReady) {
+			document.getElementById('downloadLink').href = window.location.href.replace('/store/', '/dl/')
 		}
 	})
+
+	function triggerDownload() {
+		socket.send(JSON.stringify({
+			type: "start_download",
+			payload: "{{ key }}"
+		}))
+	}
 </script>
 }

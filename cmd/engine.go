@@ -85,7 +85,7 @@ func (a *app) setupRoutes() {
 		if err != nil {
 			ctx.AbortWithError(http.StatusNotFound, err)
 		}
-		ctx.HTML(http.StatusOK, "", views.Download(r.FileInfo.Name, key))
+		ctx.HTML(http.StatusOK, "", views.Download(r.FileInfo.Name, key, r.DownloadReady))
 	})
 
 	// direct download endpoint

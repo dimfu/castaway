@@ -43,8 +43,8 @@ templ Index() {
 		socket.addEventListener("message", (event) => {
 			const data = JSON.parse(event.data)
 			switch (data.type) {
-				case "pong":
-					console.log("Receiver connected, starting to uplaod chunks")
+				case "start_download":
+					console.log("Client triggered download, start uploading...")
 					let offset = 0
 					for (const chunk_size of chunks) {
 						// send the blob directly to the server

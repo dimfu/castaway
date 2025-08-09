@@ -45,10 +45,10 @@ func (h *Hub) Run() {
 			delete(h.Clients[client.WhichStore], client)
 		case message := <-h.Broadcast:
 			log.Println("Received broadcast: ", message.Type)
-			if message.Type == "ping" {
+			if message.Type == "start_download" {
 				clients := h.Clients[message.Payload]
 				for client := range clients {
-					client.Send <- Message{Type: "pong", Payload: message.Payload}
+					client.Send <- Message{Type: message.Type, Payload: message.Payload}
 				}
 			}
 		}

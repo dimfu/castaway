@@ -18,6 +18,7 @@ type Registry struct {
 	Buffer         []byte
 	FreeBufferChan chan struct{}
 	ChunkReadyChan chan struct{}
+	DownloadReady  bool
 }
 
 func newRegistry(key string, secret string, fileInfo *FileInfo) *Registry {
@@ -26,8 +27,9 @@ func newRegistry(key string, secret string, fileInfo *FileInfo) *Registry {
 		Secret:         secret,
 		FileInfo:       fileInfo,
 		Buffer:         make([]byte, 0, BUF_SIZE),
-		FreeBufferChan: make(chan struct{}, 1),
-		ChunkReadyChan: make(chan struct{}, 1),
+		FreeBufferChan: make(chan struct{}),
+		ChunkReadyChan: make(chan struct{}),
+		DownloadReady:  false,
 	}
 }
 
@@ -67,6 +69,10 @@ func (r *Registry) BuildChunks() []int {
 
 	if remainder > 0 {
 		chunks = append(chunks, remainder)
+	}
+
+	if len(chunks) > 0 {
+		r.DownloadReady = true
 	}
 
 	return chunks

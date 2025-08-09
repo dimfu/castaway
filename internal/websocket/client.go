@@ -58,14 +58,6 @@ func (c *Client) Read() {
 				c.sendErr(fmt.Sprintf("Error while reading Blob from client: %s", err.Error()))
 				break
 			}
-
-			// broadcast to all client that is in this download connection
-			for client := range c.Hub.Clients[c.WhichStore] {
-				if err := client.Conn.WriteJSON(Message{Type: "download_ready"}); err != nil {
-					c.sendErr(err.Error())
-					break
-				}
-			}
 		} else {
 			jsonMsg := new(Message)
 			err := json.Unmarshal(data, jsonMsg)
