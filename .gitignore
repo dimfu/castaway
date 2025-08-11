@@ -6,3 +6,6 @@ bin
 
 # etc
 settings.yaml
+
+# generated global.css from tailwind build
+assets/css/global.css
