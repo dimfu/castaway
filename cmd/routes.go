@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"mime"
 	"net/http"
 	"strconv"
 
@@ -33,9 +34,44 @@ func (a *app) setupRoutes() {
 		ctx.HTML(http.StatusOK, "", views.Index())
 	})
 
+	a.engine.POST("/detect-mime", func(ctx *gin.Context) {
+		fileHeader, err := ctx.FormFile("chunk")
+		if err != nil {
+			ctx.JSON(400, gin.H{"error": "chunk not provided"})
+			return
+		}
+
+		file, err := fileHeader.Open()
+		if err != nil {
+			ctx.JSON(500, gin.H{"error": "failed to open chunk"})
+			return
+		}
+		defer file.Close()
+
+		buf := make([]byte, 512)
+		n, err := file.Read(buf)
+		if err != nil && err.Error() != "EOF" {
+			ctx.JSON(500, gin.H{"error": "failed to read chunk"})
+			return
+		}
+
+		mimeType := http.DetectContentType(buf[:n])
+		exts, err := mime.ExtensionsByType(mimeType)
+		if err != nil {
+			ctx.JSON(500, gin.H{"error": "failed to get mime type extension"})
+			return
+		}
+
+		ctx.JSON(200, gin.H{
+			"mime": mimeType,
+			"ext":  exts[0],
+		})
+	})
+
 	a.engine.POST("/init-upload", func(ctx *gin.Context) {
 		secret := ctx.PostForm("secret")
 		fileSize, _ := strconv.Atoi(ctx.PostForm("file_size"))
+
 		r, err := a.store.AddToRegistry(secret, &store.FileInfo{
 			Name: ctx.PostForm("file_name"),
 			Size: fileSize,
@@ -79,7 +115,7 @@ func (a *app) setupRoutes() {
 			ctx.AbortWithError(http.StatusNotFound, err)
 		}
 		ctx.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, r.FileInfo.Name))
-		ctx.Header("Content-Type", "application/octet-stream")
+		ctx.Header("Content-Type", r.FileInfo.Type)
 		ctx.Header("Content-Length", fmt.Sprintf("%d", r.FileInfo.Size))
 
 		transferred := 0
