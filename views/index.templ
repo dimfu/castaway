@@ -1,23 +1,21 @@
 package views
 
 templ Index() {
-	@Layout() {
-		<h1>Castaway</h1>
-		<form
-			id="uploadForm"
-			hx-post="/init-upload"
-			hx-on::after-request="initUpload(event)"
-			style="max-width: 500px; width: fit-content;"
-		>
-			<input type="text" name="secret" placeholder="Enter secret key for this session"/>
-			<input id="fileInput" type="file" onchange="handleFileChange()"/>
-			<input type="hidden" name="file_name"/>
-			<input type="hidden" name="file_size"/>
-			<input type="hidden" name="file_type"/>
-			<button style="display: block; margin-top: 1rem; width: 100%;" type="submit">Upload</button>
-		</form>
-	}
-	<script>
+@Layout() {
+<h1>Castaway</h1>
+<form id="uploadForm" hx-post="/init-upload" hx-on::after-request="initUpload(event)"
+	style="max-width: 500px; width: fit-content;">
+	<input type="text" name="secret" placeholder="Enter secret key for this session" />
+	<input id="fileInput" type="file" multiple onchange="handleFileChange()" />
+	<input type="hidden" name="file_name" />
+	<input type="hidden" name="file_size" />
+	<input type="hidden" name="file_type" />
+	<button id="uploadBtn" disabled style="display: block; margin-top: 1rem; width: 100%;"
+		type="submit">Upload</button>
+</form>
+}
+<script type="text/javascript" src="/public/js/zip-full.min.js"></script>
+<script>
 	let socket
 	let clearedOnce
 
@@ -65,9 +63,22 @@ templ Index() {
 		})
 	}
 
-	function handleFileChange() {
+	async function handleFileChange() {
 		const fileInput = document.getElementById("fileInput")
-		const file = fileInput.files && fileInput.files.length > 0 ? fileInput.files[0] : null
+
+		// file that will be sent to the server or client
+		let file
+		const inputFiles = fileInput.files
+		if (inputFiles.length > 1) {
+			const zipWriter = new zip.ZipWriter(new zip.BlobWriter("application/zip"))
+			await Promise.all([...inputFiles].map(f => {
+				return zipWriter.add(f.name, new zip.BlobReader(f))
+			}))
+			file = await zipWriter.close()
+			file = new File([file], "files.zip", {type: "application/zip"})
+		} else if (inputFiles.length === 1) {
+			file = inputFiles[0]
+		}
 
 		if (file) {
 			console.log("File selected:", file.name, file.size, file.type)
@@ -76,6 +87,9 @@ templ Index() {
 			form.querySelector('input[name="file_name"]').value = file.name
 			form.querySelector('input[name="file_size"]').value = file.size
 			form.querySelector('input[name="file_type"]').value = file.type
+
+			const uploadBtn = document.getElementById("uploadBtn")
+			uploadBtn.disabled = false
 		} else {
 			window.currentUploadFile = null
 			const form = document.getElementById('uploadForm')
