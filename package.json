@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "build": "tailwindcss --input assets/css/tailwind.css --output assets/css/global.css"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.11",
+    "tailwindcss": "^4.1.11"
+  }
+}

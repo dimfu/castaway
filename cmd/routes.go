@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/dimfu/castaway/assets"
 	"github.com/dimfu/castaway/internal/store"
 	"github.com/dimfu/castaway/internal/websocket"
 	"github.com/dimfu/castaway/views"
@@ -15,6 +16,10 @@ import (
 func (a *app) setupRoutes() {
 	hub := websocket.NewHub(a.store)
 	go hub.Run()
+
+	// serve static files from the embeded assets
+	assets := assets.Assets
+	a.engine.StaticFS("/public", http.FS(assets))
 
 	a.engine.GET("/ws/:key", func(ctx *gin.Context) {
 		key := ctx.Param("key")

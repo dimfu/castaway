@@ -22,6 +22,7 @@ var (
 	port      = flag.Int64("port", DEFAULT_PORT, fmt.Sprintf("using port %d by default\n", DEFAULT_PORT))
 )
 
+//go:generate npm --prefix .. run build
 func main() {
 	flag.Parse()
 

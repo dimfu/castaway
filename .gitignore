@@ -1,4 +1,5 @@
 # folders & files
+node_modules
 tmp
 bin
 *_templ.go*
