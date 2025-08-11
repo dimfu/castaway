@@ -12,8 +12,10 @@ templ Index() {
 					Send files easily from the browser to other peer with no file size
 					limitation.
 				</small>
-				<img src="https://cdn.prod.website-files.com/63d10707b249a7daee263cf7/63d10707b249a72f70263d91_line-system.svg"
-					loading="lazy" alt="" class="opacity-25 my-2 w-full" />
+				<div class="w-full">
+					<img src="https://cdn.prod.website-files.com/63d10707b249a7daee263cf7/63d10707b249a72f70263d91_line-system.svg"
+						alt="" class="block opacity-25 my-2 w-full" />
+				</div>
 				<h2 class="font-semibold text-2xl mb-1.5">Share Files</h2>
 				<div class="mb-1.5" id="selected_container" style="display: none;">
 					<h3 class="text-xl">Files Selected</h3>
@@ -27,7 +29,7 @@ templ Index() {
 					<input type="hidden" name="file_name" />
 					<input type="hidden" name="file_size" />
 					<input type="hidden" name="file_type" />
-					<button id="uploadBtn" disabled type="submit" class="
+					<button style="display: none;" id="uploadBtn" disabled type="submit" class="
 						mx-auto
 						mt-4
 						min-h-[2.25em] 
@@ -43,6 +45,16 @@ templ Index() {
 						Share Now
 					</button>
 				</form>
+				<div style="display: none" id="proccessingContainer"
+					class="mt-1.5 p-2 bg-[rgba(74,229,181,0.3)] outline-[rgb(74,229,181)]-1">
+					<small
+						class="font-semibold after:content-[''] after:inline-block after:animate-ellipsis">Processing</small>
+					<p>
+						Since there is multiple files that are being selected, the browser needs
+						to
+						archive the files into a ZIP archive. Please wait
+					</p>
+				</div>
 				<div id="statusContainer"></div>
 			</div>
 		</div>
@@ -53,6 +65,10 @@ templ Index() {
 <script>
 	let socket
 	let clearedOnce
+
+	// to track download progress
+	let uploadedChunkCount = 0
+	let chunksLength = 0
 
 	document.addEventListener('DOMContentLoaded', function () {
 		if (clearedOnce) return
@@ -85,6 +101,8 @@ templ Index() {
 				case "start_download":
 					console.log("Client triggered download, start uploading...")
 					let offset = 0
+					chunksLength = chunks.length
+					console.log("Chunks length", chunksLength)
 					for (const chunk_size of chunks) {
 						socket.send(file.slice(offset, offset + chunk_size))
 						offset += chunk_size
@@ -92,6 +110,11 @@ templ Index() {
 					clearFormInputs()
 					window.currentUploadFile = null
 					break
+				case "upload_chunk_success":
+					uploadedChunkCount++
+					const percent = (uploadedChunkCount / chunksLength) * 100
+					document.getElementById("uploadProgress").value = percent
+					document.getElementById("uploadPercentage").textContent = `${percent.toFixed(1)}`
 				default:
 					console.log(data.type)
 			}
@@ -105,6 +128,7 @@ templ Index() {
 		let file
 		const inputFiles = fileInput.files
 		if (inputFiles.length > 1) {
+			document.getElementById("proccessingContainer").style.display = "block"
 			let selectedContainer = document.getElementById("selected_container")
 			selectedContainer.style.display = "block"
 			let fileUlElement = document.getElementById("selected_files")
@@ -124,6 +148,8 @@ templ Index() {
 		}
 
 		if (file) {
+			document.getElementById("proccessingContainer").style.display = "none"
+			document.getElementById("uploadBtn").style.display = "block"
 			console.log("File selected:", file.name, file.size, file.type)
 			window.currentUploadFile = file
 			const form = document.getElementById('uploadForm')
@@ -162,7 +188,7 @@ templ Index() {
 					<button type="button" id="copyBtn" class="
 						mx-auto
 						min-h-[2.25em] 
-						bg-[var(--antique-white)] 
+						bg-antique-white 
 						text-[var(--black)] 
 						text-center 
 						border border-black 
@@ -171,6 +197,14 @@ templ Index() {
 					">
 						Copy
 					</button>
+				</div>
+				<div class="flex flex-col">
+					<label>Upload Progress:</label>
+					<progress class="bg-antique-white" id="uploadProgress" value="0" max="100"></progress>
+					<small><span id="uploadPercentage">0</span>%</small>
+				</div>
+				<div class="outline-[#f36a29] bg-[#f36a294d] p-2">
+					Please keep this tab open and don't switch to another tab or window until the upload is complete to avoid connection issues and ensure faster upload speeds.
 				</div>
 			`
 
