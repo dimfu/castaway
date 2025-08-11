@@ -2,17 +2,52 @@ package views
 
 templ Index() {
 @Layout() {
-<h1>Castaway</h1>
-<form id="uploadForm" hx-post="/init-upload" hx-on::after-request="initUpload(event)"
-	style="max-width: 500px; width: fit-content;">
-	<input type="text" name="secret" placeholder="Enter secret key for this session" />
-	<input id="fileInput" type="file" multiple onchange="handleFileChange()" />
-	<input type="hidden" name="file_name" />
-	<input type="hidden" name="file_size" />
-	<input type="hidden" name="file_type" />
-	<button id="uploadBtn" disabled style="display: block; margin-top: 1rem; width: 100%;"
-		type="submit">Upload</button>
-</form>
+<div class="flex mx-auto items-center justify-center">
+	<div class="flex items-center justify-center p-2 md:pd-0">
+		<div class="md:w-[29em] md:max-w-[29em] outline-1 outline-solid shadow-[6px_6px_rgba(0,0,0,0.3)]">
+			<div
+				class="bg-[var(--antique-white)] bg-[url('/public/bg-noise.png'),_linear-gradient(rgba(255,255,255,0.1),_rgba(255,255,255,0.1))] bg-[auto,_auto] bg-repeat p-4">
+				<h1 class="font-bold text-4xl">Castaway</h1>
+				<small class="text-base">
+					Send files easily from the browser to other peer with no file size
+					limitation.
+				</small>
+				<img src="https://cdn.prod.website-files.com/63d10707b249a7daee263cf7/63d10707b249a72f70263d91_line-system.svg"
+					loading="lazy" alt="" class="opacity-25 my-2 w-full" />
+				<h2 class="font-semibold text-2xl mb-1.5">Share Files</h2>
+				<div class="mb-1.5" id="selected_container" style="display: none;">
+					<h3 class="text-xl">Files Selected</h3>
+					<ul class="list-disc list-inside" id="selected_files"></ul>
+					<small>Total Size: <span id="total_size"></span></small>
+				</div>
+				<form hx-target="#statusContainer" hx-swap="none" class="flex flex-col w-full"
+					id="uploadForm" hx-post="/init-upload" hx-on::after-request="initUpload(event)">
+					<input class="outline-1 w-full p-1 file:outline-1 file:p-1 file:mr-2"
+						id="fileInput" type="file" multiple onchange="handleFileChange()" />
+					<input type="hidden" name="file_name" />
+					<input type="hidden" name="file_size" />
+					<input type="hidden" name="file_type" />
+					<button id="uploadBtn" disabled type="submit" class="
+						mx-auto
+						mt-4
+						min-h-[2.25em] 
+						bg-[var(--antique-white)] 
+						text-[var(--black)] 
+						text-center 
+						border border-black 
+						text-base font-bold leading-[1.5] 
+						transition-none 
+						shadow-[3px_3px_#000] 
+						w-40 max-w-full 
+						hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none">
+						Share Now
+					</button>
+				</form>
+				<div id="statusContainer"></div>
+			</div>
+		</div>
+	</div>
+</div>
 }
 <script type="text/javascript" src="/public/js/zip-full.min.js"></script>
 <script>
@@ -70,12 +105,20 @@ templ Index() {
 		let file
 		const inputFiles = fileInput.files
 		if (inputFiles.length > 1) {
+			let selectedContainer = document.getElementById("selected_container")
+			selectedContainer.style.display = "block"
+			let fileUlElement = document.getElementById("selected_files")
 			const zipWriter = new zip.ZipWriter(new zip.BlobWriter("application/zip"))
 			await Promise.all([...inputFiles].map(f => {
+				let fileLiElement = document.createElement("li")
+				fileLiElement.textContent = f.name
+				fileUlElement.appendChild(fileLiElement)
 				return zipWriter.add(f.name, new zip.BlobReader(f))
 			}))
 			file = await zipWriter.close()
 			file = new File([file], "files.zip", {type: "application/zip"})
+			let totalSizeEl = document.getElementById("total_size")
+			totalSizeEl.textContent = (file.size / (1024 * 1024)).toFixed(2) + " MB"
 		} else if (inputFiles.length === 1) {
 			file = inputFiles[0]
 		}
@@ -112,6 +155,29 @@ templ Index() {
 
 		try {
 			const data = JSON.parse(xhr.responseText)
+			document.getElementById("uploadForm").innerHTML = `
+				<label>Share this URL with the receiver:</label>
+				<div class="flex items-center gap-1">
+					<input id="download_url" class="flex-1 p-1 outline" type="text" value="${data.url}"/>
+					<button type="button" id="copyBtn" class="
+						mx-auto
+						min-h-[2.25em] 
+						bg-[var(--antique-white)] 
+						text-[var(--black)] 
+						text-center 
+						border border-black 
+						text-base font-bold leading-[1.5] 
+						w-24 
+					">
+						Copy
+					</button>
+				</div>
+			`
+
+			document.getElementById("copyBtn").addEventListener("click", function () {
+				copyToClipboard(document.getElementById("download_url"))
+			})
+
 			if (data.url && file) {
 				const key = data.url.split("/").pop()
 				const protocol = window.location.protocol === "https:" ? "wss" : "ws"
@@ -124,5 +190,48 @@ templ Index() {
 			console.error(err)
 		}
 	}
+
+	// https://stackoverflow.com/a/51158332/28430099
+	function copyToClipboard(elem) {
+		// create hidden text element, if it doesn't already exist
+		var targetId = "_hiddenCopyText_"
+		var isInput = elem.tagName === "INPUT" || elem.tagName === "TEXTAREA"
+		var origSelectionStart, origSelectionEnd
+		if (isInput) {
+			// can just use the original source element for the selection and copy
+			target = elem
+			origSelectionStart = elem.selectionStart
+			origSelectionEnd = elem.selectionEnd
+		} else {
+			return
+		}
+		// select the content
+		var currentFocus = document.activeElement
+		target.focus()
+		target.setSelectionRange(0, target.value.length)
+
+		// copy the selection
+		var succeed;
+		try {
+			succeed = document.execCommand("copy")
+			document.getElementById("copyBtn").textContent = "Copied!"
+		} catch (e) {
+			succeed = false
+		}
+		// restore original focus
+		if (currentFocus && typeof currentFocus.focus === "function") {
+			currentFocus.focus()
+		}
+
+		if (isInput) {
+			// restore prior selection
+			elem.setSelectionRange(origSelectionStart, origSelectionEnd)
+		} else {
+			// clear temporary content
+			target.textContent = ""
+		}
+		return succeed
+	}
+
 </script>
 }

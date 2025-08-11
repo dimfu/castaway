@@ -1,1 +1,26 @@
 @import "tailwindcss";
+@config "../../tailwind.config.js";
+
+@font-face {
+  font-family: 'Pixel Operator Mono';
+  src: url('https://assets.website-files.com/63d10707b249a7daee263cf7/63d10707b249a73e04263d67_PixelOperatorMono-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pixel Operator Mono';
+  src: url('https://assets.website-files.com/63d10707b249a7daee263cf7/63d10707b249a741a0263d68_PixelOperatorMono.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --antique-white: #d6ceb9;
+}
+
+html {
+  font-family: 'Pixel Operator Mono', sans-serif;
+}

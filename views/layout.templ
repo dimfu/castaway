@@ -1,18 +1,21 @@
 package views
 
 templ Layout() {
-	<!DOCTYPE html>
-	<html lang="en">
-		<head>
-			<title>Castaway</title>
-			<meta charset="UTF-8"/>
-			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-			<script src="/public/js/htmx.min.js" defer></script>
-			<link rel="icon" type="image/x-icon" href="/public/favicon.svg"/>
-			<link rel="stylesheet" href="/public/css/global.css"/>
-		</head>
-		<body>
-			{ children... }
-		</body>
-	</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>Castaway</title>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<script src="/public/js/htmx.min.js" defer></script>
+	<link rel="icon" type="image/x-icon" href="/public/favicon.svg" />
+	<link rel="stylesheet" href="/public/css/global.css" />
+</head>
+
+<body class="flex min-h-screen bg-antique-white">
+	{ children... }
+</body>
+
+</html>
 }
