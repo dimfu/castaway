@@ -102,7 +102,8 @@ func (a *app) setupRoutes() {
 		key := ctx.Param("key")
 		r, err := a.store.FindRegistry(key)
 		if err != nil {
-			ctx.AbortWithError(http.StatusNotFound, err)
+			ctx.Redirect(http.StatusMovedPermanently, "/")
+			return
 		}
 		ctx.HTML(http.StatusOK, "", views.Download(r.FileInfo.Name, key, r.Ready))
 	})
@@ -144,7 +145,5 @@ func (a *app) setupRoutes() {
 				break
 			}
 		}
-
-		a.store.ClearRegistry(r.Key)
 	})
 }

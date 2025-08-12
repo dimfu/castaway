@@ -1,5 +1,10 @@
 package store
 
+import (
+	"log"
+	"time"
+)
+
 type FileInfo struct {
 	Name string
 	Size int
@@ -7,6 +12,7 @@ type FileInfo struct {
 }
 
 type Registry struct {
+	Store    *Store
 	Key      string
 	FileInfo *FileInfo
 
@@ -19,17 +25,27 @@ type Registry struct {
 
 	// to indicate that the download is ready and make my life easier on the front end
 	Ready bool
+
+	Used          bool
+	TimeUsedSince time.Time
 }
 
-func newRegistry(bufsize int64, key string, fileInfo *FileInfo) *Registry {
+func newRegistry(store *Store, key string, fileInfo *FileInfo) *Registry {
 	r := &Registry{
+		Store:          store,
 		Key:            key,
 		FileInfo:       fileInfo,
-		Buffer:         make([]byte, 0, bufsize),
+		Buffer:         make([]byte, 0, store.UsingChunkSize),
 		freeBufferChan: make(chan struct{}, 1),
 		chunkReadyChan: make(chan struct{}, 1),
 		Ready:          false,
+		Used:           false,
+		TimeUsedSince:  time.Now(),
 	}
+
+	// check if whether the registry is inactive or not
+	go r.inactiveChecker()
+
 	// initially the buffer is free for writing
 	r.freeBufferChan <- struct{}{}
 	return r
@@ -38,6 +54,8 @@ func newRegistry(bufsize int64, key string, fileInfo *FileInfo) *Registry {
 // clear current chunk from the buffer and returns it so that we can send it to the client
 func (r *Registry) DequeueChunk() []byte {
 	<-r.chunkReadyChan
+	r.Used = true
+	r.TimeUsedSince = time.Now()
 	tmp := make([]byte, len(r.Buffer))
 	copy(tmp, r.Buffer)
 	r.Buffer = r.Buffer[:0]
@@ -80,4 +98,19 @@ func (r *Registry) BuildChunks() []int {
 	}
 
 	return chunks
+}
+
+func (r *Registry) inactiveChecker() {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			if r.Used && time.Now().After(r.TimeUsedSince.Add(30*time.Second)) {
+				log.Printf("Registry %s has been removed due to inactivity", r.Key)
+				r.Store.ClearRegistry(r.Key)
+				return
+			}
+		}
+	}
 }
