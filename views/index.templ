@@ -1,55 +1,35 @@
 package views
 
 templ Index() {
-	@Layout() {
-		<div class="flex mx-auto items-center justify-center">
-			<div class="flex items-center justify-center p-2 md:pd-0">
-				<div class="md:w-[29em] md:max-w-[29em] outline-1 outline-solid shadow-[6px_6px_rgba(0,0,0,0.3)]">
-					<div
-						class="bg-[var(--antique-white)] bg-[url('/public/bg-noise.png'),_linear-gradient(rgba(255,255,255,0.1),_rgba(255,255,255,0.1))] bg-[auto,_auto] bg-repeat p-4"
-					>
-						<h1 class="font-bold text-4xl">Castaway</h1>
-						<small class="text-base">
-							Send files easily from the browser to other peer with no file size
-							limitation.
-						</small>
-						<div class="w-full">
-							<img
-								src="https://cdn.prod.website-files.com/63d10707b249a7daee263cf7/63d10707b249a72f70263d91_line-system.svg"
-								alt=""
-								class="block opacity-25 my-2 w-full"
-							/>
-						</div>
-						<h2 class="font-semibold text-2xl mb-1.5">Share Files</h2>
-						<div class="mb-1.5" id="selected_container" style="display: none;">
-							<h3 class="text-xl">Files Selected</h3>
-							<ul class="list-disc list-inside" id="selected_files"></ul>
-							<small>Total Size: <span id="total_size"></span></small>
-						</div>
-						<form
-							hx-target="#statusContainer"
-							hx-swap="none"
-							class="flex flex-col w-full"
-							id="uploadForm"
-							hx-post="/init-upload"
-							hx-on::after-request="initUpload(event)"
-						>
-							<input
-								class="outline-1 w-full p-1 file:outline-1 file:p-1 file:mr-2"
-								id="fileInput"
-								type="file"
-								multiple
-								onchange="handleFileChange()"
-							/>
-							<input type="hidden" name="file_name"/>
-							<input type="hidden" name="file_size"/>
-							<input type="hidden" name="file_type"/>
-							<button
-								style="display: none;"
-								id="uploadBtn"
-								disabled
-								type="submit"
-								class="
+@Layout() {
+<div class="flex mx-auto items-center justify-center">
+	<div class="flex items-center justify-center p-2 md:pd-0">
+		<div class="md:w-[29em] md:max-w-[29em] outline-1 outline-solid shadow-[6px_6px_rgba(0,0,0,0.3)]">
+			<div
+				class="bg-[var(--antique-white)] bg-[url('/public/bg-noise.png'),_linear-gradient(rgba(255,255,255,0.1),_rgba(255,255,255,0.1))] bg-[auto,_auto] bg-repeat p-4">
+				<h1 class="font-bold text-4xl">Castaway</h1>
+				<small class="text-base">
+					Send files easily from the browser to other peer with no file size
+					limitation.
+				</small>
+				<div class="w-full">
+					<img src="https://cdn.prod.website-files.com/63d10707b249a7daee263cf7/63d10707b249a72f70263d91_line-system.svg"
+						alt="" class="block opacity-25 my-2 w-full" />
+				</div>
+				<h2 class="font-semibold text-2xl mb-1.5">Share Files</h2>
+				<div class="mb-1.5" id="selected_container" style="display: none;">
+					<h3 class="text-xl">Files Selected</h3>
+					<ul class="list-disc list-inside" id="selected_files"></ul>
+					<small>Total Size: <span id="total_size"></span></small>
+				</div>
+				<form hx-target="#statusContainer" hx-swap="none" class="flex flex-col w-full"
+					id="uploadForm" hx-post="/init-upload" hx-on::after-request="initUpload(event)">
+					<input class="outline-1 w-full p-1 file:outline-1 file:p-1 file:mr-2"
+						id="fileInput" type="file" multiple onchange="handleFileChange()" />
+					<input type="hidden" name="file_name" />
+					<input type="hidden" name="file_size" />
+					<input type="hidden" name="file_type" />
+					<button style="display: none;" id="uploadBtn" disabled type="submit" class="
 						mx-auto
 						mt-4
 						min-h-[2.25em] 
@@ -61,33 +41,29 @@ templ Index() {
 						transition-none 
 						shadow-[3px_3px_#000] 
 						w-40 max-w-full 
-						hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none"
-							>
-								Share Now
-							</button>
-						</form>
-						<div
-							style="display: none"
-							id="proccessingContainer"
-							class="mt-1.5 p-2 bg-[rgba(74,229,181,0.3)] outline-[rgb(74,229,181)]-1"
-						>
-							<small
-								class="font-semibold after:content-[''] after:inline-block after:animate-ellipsis"
-							>Processing</small>
-							<p>
-								Since there is multiple files that are being selected, the browser needs
-								to
-								archive the files into a ZIP archive. Please wait
-							</p>
-						</div>
-						<div id="statusContainer"></div>
-					</div>
+						hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none">
+						Share Now
+					</button>
+				</form>
+				<div style="display: none" id="proccessingContainer"
+					class="mt-1.5 p-2 bg-[rgba(74,229,181,0.3)] outline-[rgb(74,229,181)]-1">
+					<small
+						class="font-semibold after:content-[''] after:inline-block after:animate-ellipsis">Processing</small>
+					<p>
+						Since there is multiple files that are being selected, the browser needs
+						to
+						archive the files into a ZIP archive. Please wait
+					</p>
 				</div>
+				<div id="statusContainer"></div>
 			</div>
 		</div>
-	}
-	<script type="text/javascript" src="/public/js/zip-full.min.js"></script>
-	<script>
+	</div>
+</div>
+}
+<script type="text/javascript" src="/public/js/zip-full.min.js"></script>
+<script type="text/javascript" src="/public/js/qrious.min.js"></script>
+<script>
 	let socket
 	let clearedOnce
 
@@ -231,20 +207,25 @@ templ Index() {
 			// swap elements for the inner uploadForm element
 			document.getElementById("uploadForm").innerHTML = `
 				<label>Share this URL with the receiver:</label>
-				<div class="flex items-center gap-1">
-					<input id="download_url" class="flex-1 p-1 outline" type="text" value="${data.url}"/>
-					<button type="button" id="copyBtn" class="
-						mx-auto
-						min-h-[2.25em] 
-						bg-antique-white 
-						text-[var(--black)] 
-						text-center 
-						border border-black 
-						text-base font-bold leading-[1.5] 
-						w-24 
-					">
-						Copy
-					</button>
+				<div class="flex flex-col items-center gap-1">
+					<div id="qrWrapper" class="outline w-full" style="display: none;">
+						<canvas class="w-full" id="qrCanvas"></canvas>
+					</div>
+					<div class="flex gap-1 items-center w-full">
+						<input id="download_url" class="flex-1 p-1 outline" type="text" value="${data.url}"/>
+						<button type="button" id="copyBtn" class="
+							mx-auto
+							min-h-[2.25em] 
+							bg-antique-white 
+							text-[var(--black)] 
+							text-center 
+							border border-black 
+							text-base font-bold leading-[1.5] 
+							w-24 
+						">
+							Copy
+						</button>
+					</div>
 				</div>
 				<div class="flex flex-col">
 					<label>Upload Progress:</label>
@@ -255,6 +236,8 @@ templ Index() {
 					Please keep this tab open and don't switch to another tab or window until the upload is complete to avoid connection issues and ensure faster upload speeds.
 				</div>
 			`
+
+			showQRCode()
 			document.getElementById("copyBtn").addEventListener("click", function () {
 				copyToClipboard(document.getElementById("download_url"))
 			})
@@ -315,5 +298,18 @@ templ Index() {
 		return succeed
 	}
 
+	function showQRCode() {
+		const url = document.getElementById('download_url').value
+		if (!url) return
+		const qr = new QRious({
+			element: document.getElementById('qrCanvas'),
+			value: url,
+			size: 640,
+		})
+
+		qr.backgroundAlpha = 0.2
+
+		document.getElementById('qrWrapper').style.display = 'block'
+	}
 </script>
 }
